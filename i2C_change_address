@@ -1,0 +1,47 @@
+#include <Wire.h>
+#include <VL53L0X.h>  // Pololu's VL53L0X library — install via Library Manager
+
+constexpr uint8_t I2C_SDA = 6;
+constexpr uint8_t I2C_SCL = 7;
+constexpr uint8_t XSHUT_PINS[] = {18, 19, 20};
+constexpr uint8_t NUM_SENSORS = 3;
+
+// Pick new addresses, anything unused and not 0x29
+constexpr uint8_t NEW_ADDRESSES[] = {0x30, 0x31, 0x32};
+
+VL53L0X sensors[NUM_SENSORS];
+
+void setup() {
+  Serial.begin(115200);
+  Wire.begin(I2C_SDA, I2C_SCL);
+
+  // Step 1: hold ALL sensors in reset
+  for (uint8_t p : XSHUT_PINS) {
+    pinMode(p, OUTPUT);
+    digitalWrite(p, LOW);
+  }
+  delay(10);
+
+  // Step 2: wake sensors one at a time, assign each a new address
+  for (uint8_t i = 0; i < NUM_SENSORS; i++) {
+    digitalWrite(XSHUT_PINS[i], HIGH);
+    delay(10); // let it boot at default 0x29
+
+    sensors[i].setTimeout(500);
+    if (!sensors[i].init()) {
+      Serial.printf("Sensor %d failed to init at 0x29\n", i);
+      continue;
+    }
+
+    sensors[i].setAddress(NEW_ADDRESSES[i]);
+    Serial.printf("Sensor %d moved to 0x%02X\n", i, NEW_ADDRESSES[i]);
+  }
+}
+
+void loop() {
+  for (uint8_t i = 0; i < NUM_SENSORS; i++) {
+    uint16_t mm = sensors[i].readRangeSingleMillimeters();
+    Serial.printf("Sensor %d: %d mm\n", i, mm);
+  }
+  delay(200);
+}
