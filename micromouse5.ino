@@ -64,50 +64,6 @@ constexpr uint8_t XSHUT_R = 20, ADDR_R = 0x29;
 #endif
 
 
-// =========================== DEBUG CONFIG ===================================
-// Serial Monitor: 115200 baud. Set DEBUG_ENABLED=false for competition.
-// DEBUG_LEVEL: 1=major events, 2=sensors/navigation, 3=motion diagnostics.
-constexpr bool DEBUG_ENABLED = true;
-constexpr uint8_t DEBUG_LEVEL = 2;
-constexpr uint32_t DEBUG_BAUD = 115200;
-
-#define DBG1(x) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= 1) Serial.println(x); } while (0)
-#define DBG2(x) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= 2) Serial.println(x); } while (0)
-#define DBG3(x) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= 3) Serial.println(x); } while (0)
-#define DBGF(level, fmt, ...) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= (level)) Serial.printf((fmt), ##__VA_ARGS__); } while (0)
-
-uint32_t debugMoveCount = 0;
-uint32_t debugTurnCount = 0;
-uint32_t debugLastSensorPrint = 0;
-
-static const char* dirName(uint8_t d) {
-  switch (d) {
-    case NORTH: return "NORTH";
-    case EAST:  return "EAST";
-    case SOUTH: return "SOUTH";
-    case WEST:  return "WEST";
-    default:    return "?";
-  }
-}
-
-static void debugSensors() {
-  if (!DEBUG_ENABLED || DEBUG_LEVEL < 2) return;
-  DBGF(2, "[SENS] L=%u mm  F=%u mm  R=%u mm | wall=%d/%d/%d | gyro=%.2f dps  yaw=%.2f deg\n",
-       (unsigned)tofs[0].lastMm, (unsigned)tofs[1].lastMm, (unsigned)tofs[2].lastMm,
-       tofs[0].lastMm < SIDE_WALL_MM, tofs[1].lastMm < FRONT_WALL_MM,
-       tofs[2].lastMm < SIDE_WALL_MM, gyroRateDps, gyroHeadingDeg);
-}
-
-static void debugCell(const char* tag) {
-  if (!DEBUG_ENABLED || DEBUG_LEVEL < 2) return;
-  const uint8_t w = walls[cellX][cellY];
-  DBGF(2, "[%s] cell=(%d,%d) heading=%s walls=%c%c%c%c route=%u\n", tag,
-       cellX, cellY, dirName(heading),
-       (w & WALL_BIT[NORTH]) ? 'N' : '-', (w & WALL_BIT[EAST]) ? 'E' : '-',
-       (w & WALL_BIT[SOUTH]) ? 'S' : '-', (w & WALL_BIT[WEST]) ? 'W' : '-',
-       routeLength);
-}
-
 // ============================= MAZE =========================================
 constexpr uint8_t MAZE_SIZE = 16;
 constexpr float CELL_MM = 180.0f;
@@ -204,9 +160,9 @@ constexpr float GYRO_LSB_PER_DPS = 65.5f;       // +/-500 dps
 // ============================ PERSISTENCE ===================================
 Preferences prefs;
 constexpr char NVS_NAMESPACE[] = "micromouse";
-constexpr char NVS_KEY[] = "maze_v4";
+constexpr char NVS_KEY[] = "maze_v5";
 constexpr uint16_t MAX_ROUTE = MAZE_SIZE * MAZE_SIZE;
-constexpr uint32_t MAP_MAGIC = 0x4D4D5634UL;     // "MMV4"
+constexpr uint32_t MAP_MAGIC = 0x4D4D5635UL;     // "MMV5"
 
 struct SavedMap {
   uint32_t magic;
@@ -294,6 +250,50 @@ PID rightPID {RIGHT_KP, RIGHT_KI, RIGHT_KD, 0, 0, 150};
 uint8_t route[MAX_ROUTE];
 uint16_t routeLength = 0;
 uint16_t routeIndex = 0;
+
+// =========================== DEBUG CONFIG ===================================
+// Serial Monitor: 115200 baud. Set DEBUG_ENABLED=false for competition.
+// DEBUG_LEVEL: 1=major events, 2=sensors/navigation, 3=motion diagnostics.
+constexpr bool DEBUG_ENABLED = true;
+constexpr uint8_t DEBUG_LEVEL = 2;
+constexpr uint32_t DEBUG_BAUD = 115200;
+
+#define DBG1(x) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= 1) Serial.println(x); } while (0)
+#define DBG2(x) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= 2) Serial.println(x); } while (0)
+#define DBG3(x) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= 3) Serial.println(x); } while (0)
+#define DBGF(level, fmt, ...) do { if (DEBUG_ENABLED && DEBUG_LEVEL >= (level)) Serial.printf((fmt), ##__VA_ARGS__); } while (0)
+
+uint32_t debugMoveCount = 0;
+uint32_t debugTurnCount = 0;
+uint32_t debugLastSensorPrint = 0;
+
+static const char* dirName(uint8_t d) {
+  switch (d) {
+    case NORTH: return "NORTH";
+    case EAST:  return "EAST";
+    case SOUTH: return "SOUTH";
+    case WEST:  return "WEST";
+    default:    return "?";
+  }
+}
+
+static void debugSensors() {
+  if (!DEBUG_ENABLED || DEBUG_LEVEL < 2) return;
+  DBGF(2, "[SENS] L=%u mm  F=%u mm  R=%u mm | wall=%d/%d/%d | gyro=%.2f dps  yaw=%.2f deg\n",
+       (unsigned)tofs[0].lastMm, (unsigned)tofs[1].lastMm, (unsigned)tofs[2].lastMm,
+       tofs[0].lastMm < SIDE_WALL_MM, tofs[1].lastMm < FRONT_WALL_MM,
+       tofs[2].lastMm < SIDE_WALL_MM, gyroRateDps, gyroHeadingDeg);
+}
+
+static void debugCell(const char* tag) {
+  if (!DEBUG_ENABLED || DEBUG_LEVEL < 2) return;
+  const uint8_t w = walls[cellX][cellY];
+  DBGF(2, "[%s] cell=(%d,%d) heading=%s walls=%c%c%c%c route=%u\n", tag,
+       cellX, cellY, dirName(heading),
+       (w & WALL_BIT[NORTH]) ? 'N' : '-', (w & WALL_BIT[EAST]) ? 'E' : '-',
+       (w & WALL_BIT[SOUTH]) ? 'S' : '-', (w & WALL_BIT[WEST]) ? 'W' : '-',
+       routeLength);
+}
 
 // ============================== UTILITIES ===================================
 uint8_t opposite(uint8_t d) { return (d + 2) % 4; }
@@ -942,18 +942,19 @@ void driveOneCell(uint8_t speedMode) {
 
   const uint32_t startMs = millis();
   const uint32_t timeoutMs = (speedMode == 3) ? 2500 : 4000;
+  float travelled = 0.0f;
 
   while (true) {
     serviceMotion();
 
     const float left = leftDistMm();
     const float right = rightDistMm();
-    const float travelled = 0.5f * (left + right);
+    travelled = 0.5f * (left + right);
     const float remaining = CELL_MM - travelled;
 
     if (remaining <= 0.0f) break;
     if (millis() - startMs > timeoutMs) {
-      Serial.println("ERROR: cell drive timeout");
+      Serial.println("[ERROR] Cell drive timeout - motors stopped");
       stopMotors();
       return;
     }
