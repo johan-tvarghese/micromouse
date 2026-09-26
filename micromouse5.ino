@@ -1108,7 +1108,7 @@ bool executeReplayStep(uint8_t speedMode) {
 
 // ============================== SETUP =======================================
 void setup() {
-  Serial.begin(DEBUG_BAUD);
+  Serial.begin(9600);
   const uint32_t serialStart = millis();
   while (!Serial && millis() - serialStart < 2000) {}
 
